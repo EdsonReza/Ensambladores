@@ -1,13 +1,15 @@
 data segment
-    pkey db 13, 10,"Presione una tecla para continuar...$"
-    mensaje_menu db 13,10,'Menú!', 13, 10, '1. Agregar', 13, 10, '2. Eliminar', 13, 10, 'Otro. Salir', 13, 10, 13, 10, 'Elija una opción: $'
-    pila db 10 dup(' ')
-    agregado db 13, 10,"Escribe$",13, 10
+    pkey db 13,10,"Presione una tecla para continuar...$"
+    mensaje_menu db 13,10,'Menú', 13, 10, '1. Agregar un elemento', 13, 10, '2. Remover el ultimo elemento', 13, 10, 'Otro. Salir', 13, 10, 13, 10, 'Elija una opción: $'
+    pila db (10) dup(' ') ;Se llena de espacios
+    agregado db 13, 10,"Escribe el caracter: $"
     eliminado db 13, 10,"Escribe$",13, 10
+    lleno db 13,10,"La pila esta llena$",13,10
+    salto db 13,10,"$"
 ends
 
 stack segment
-    dw 128 dup(0)
+    dw 256 dup(0)
 ends
 
 ; La impresion de texto como un macro
@@ -17,14 +19,6 @@ print macro value
     int 21h
 endm
 
-push_array macro value
-    mov ah, 01h
-    int 21h
-    sub al, 30h
-    ; Opera con al
-    
-endm
-
 code segment
     ; set segment registers:
     mov ax, data
@@ -32,8 +26,7 @@ code segment
     mov es, ax
     
     ;Inicia el indice para el arreglo
-    mov si, offset pila ; Apunta al principio
-    mov cx, 0 ;usando cx como el indice
+    mov ch, 0 ;usando ch como el indice donde se encuentra el ultimo elemento
  
     Menu:
         call clear
@@ -56,6 +49,7 @@ code segment
    
     Agregar:
         print agregado
+        call push_array
         call presskey
         jmp Menu
     
@@ -85,22 +79,49 @@ presskey proc
 presskey endp
 
 print_array proc
-    mov cx, 0
+    mov cl, 0
+    mov si, offset pila ; Apunta al principio de la pila
     imprimir_caracteres:
         mov dl, [si] ; Cargar el carácter en DL
         mov ah, 02h ; Subfunción para imprimir un carácter
         int 21h ; Imprimir el carácter
-        mov dl, 0Ah ; Carácter de salto de línea
-        mov ah, 02h ; Subfunción para imprimir el salto de línea
-        int 21h ; Imprimir el salto de línea
+        print salto
         inc si ; Apuntar al siguiente carácter en la cadena
-        inc cx ; Incrementa el contador
-        cmp cx, 10
+        inc cl ; Incrementa el contador
+        cmp cl, 10
         jne imprimir_caracteres ; Repetir hasta el final de la cadena
-    mov si,0
+    mov si,offset pila
     ret    
 print_array endp
 
+
 pop_array proc
     
-pop_array endp
+pop_array endp  
+
+
+push_array proc
+    cmp ch, 10
+    je Fin_Push
+    
+    mov ah, 01h
+    int 21h
+    ; Opera con al
+    mov si, offset pila ; Apunta al principio
+    mov cl, 0
+    Recorrer:
+        cmp cl, ch
+        je Continuar_Push
+        inc si
+        inc cl
+        jmp Recorrer 
+    
+    Continuar_Push:
+        mov [si], al
+        inc ch
+        ret
+    
+    Fin_Push:
+        print lleno    
+    ret
+push_array endp
