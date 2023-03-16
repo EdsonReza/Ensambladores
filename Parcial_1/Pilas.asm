@@ -1,10 +1,11 @@
 data segment
     pkey db 13,10,"Presione una tecla para continuar...$"
     mensaje_menu db 13,10,'Menú', 13, 10, '1. Agregar un elemento', 13, 10, '2. Remover el ultimo elemento', 13, 10, 'Otro. Salir', 13, 10, 13, 10, 'Elija una opción: $'
-    pila db (10) dup(' ') ;Se llena de espacios
+    pila db (10) dup(0) ;Se llena con el caracter vacio, si no se inicializa al querer acceder a los espacios se invade el espacio de memoria de las otras variables
     agregado db 13, 10,"Escribe el caracter: $"
-    eliminado db 13, 10,"Escribe$",13, 10
+    eliminado db 13, 10,"Ultimo caracter eliminado$",13, 10
     lleno db 13,10,"La pila esta llena$",13,10
+    vacio db 13,10,"La pila esta vacia$",13,10
     salto db 13,10,"$"
 ends
 
@@ -42,7 +43,8 @@ code segment
         cmp al, 2
         je Remover
     
-    Salir:        
+    Salir:
+        call pop_array        
         call presskey
         mov ax, 4c00h ; exit to operating system.
         int 21h         
@@ -54,11 +56,9 @@ code segment
         jmp Menu
     
     Remover:
-        print eliminado
+        call pop_array
         call presskey
-        jmp Menu
- 
-        
+        jmp Menu       
 ends
 
 ; Proceso para limpiar la pantalla             
@@ -94,22 +94,43 @@ print_array proc
     ret    
 print_array endp
 
-
 pop_array proc
-    
+    ; Revisa si esta vacia
+    cmp ch,0
+    je Fin_Pop
+    mov si, offset pila ; Apunta al principio
+    mov cl, 0 ; Contador temporal
+    Recorrido:
+        ; Revisa si el contador temporal es igual al de los elementos del arreglo
+        cmp cl, ch
+        je Continuar_Pop
+        inc si
+        inc cl
+        jmp Recorrido
+    Continuar_Pop:
+        dec si ;Al apuntar al final, se ira al siguiente espacio de memoria, asi que regresamos uno
+        mov [si], 0 ; Se coloca el caracter vacio
+        dec ch ; Reducimos el contador de elementos
+        print eliminado
+        ret
+    Fin_Pop:
+        print vacio
+    ret    
 pop_array endp  
 
 
 push_array proc
+    ; Revisa si la pila esta llena
     cmp ch, 10
     je Fin_Push
-    
+    ;Lee el caracter
     mov ah, 01h
     int 21h
     ; Opera con al
     mov si, offset pila ; Apunta al principio
-    mov cl, 0
+    mov cl, 0 ; Contador temporal
     Recorrer:
+        ; Revisa si el contador temporal es igual al de los elementos del arreglo
         cmp cl, ch
         je Continuar_Push
         inc si
@@ -117,6 +138,8 @@ push_array proc
         jmp Recorrer 
     
     Continuar_Push:
+        ; Llegado al final se asigna el valor del caracter al espacio del arreglo y
+        ; el contador de elementos se incrementa
         mov [si], al
         inc ch
         ret
