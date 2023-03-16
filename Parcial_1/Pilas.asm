@@ -78,6 +78,7 @@ presskey proc
     ret 
 presskey endp
 
+; Impresion del arreglo
 print_array proc
     mov cl, 0
     mov si, offset pila ; Apunta al principio de la pila
@@ -93,7 +94,8 @@ print_array proc
     mov si,offset pila
     ret    
 print_array endp
-
+ 
+; Eliminar elemento de la pila 
 pop_array proc
     ; Revisa si esta vacia
     cmp ch,0
@@ -118,7 +120,7 @@ pop_array proc
     ret    
 pop_array endp  
 
-
+; Agregar elemento a la pila
 push_array proc
     ; Revisa si la pila esta llena
     cmp ch, 10
